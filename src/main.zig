@@ -38,17 +38,17 @@ pub fn main() !void {
     var uList: std.Deque(Arrow) = .empty;
     var lList: std.Deque(Arrow) = .empty;
 
-    for (0..100) |i| {
-        try rList.pushBack(alloc, try Arrow.new(.Right, i));
+    for (0..3) |i| {
+        try rList.pushBack(alloc, try Arrow.new(.Right, i * 10));
     }
-    for (0..100) |i| {
-        try dList.pushBack(alloc, try Arrow.new(.Down, i));
+    for (0..3) |i| {
+        try dList.pushBack(alloc, try Arrow.new(.Down, i * 10));
     }
-    for (0..100) |i| {
-        try uList.pushBack(alloc, try Arrow.new(.Up, i));
+    for (0..3) |i| {
+        try uList.pushBack(alloc, try Arrow.new(.Up, i * 10));
     }
-    for (0..100) |i| {
-        try lList.pushBack(alloc, try Arrow.new(.Left, i));
+    for (0..3) |i| {
+        try lList.pushBack(alloc, try Arrow.new(.Left, i * 10));
     }
 
     while (!rl.windowShouldClose()) {
@@ -77,6 +77,26 @@ pub fn main() !void {
             try cleanse(&dList);
             try cleanse(&lList);
             try cleanse(&uList);
+
+            var char = rl.getCharPressed();
+            while (char != 0) {
+                switch (char) {
+                    'h' => {
+                        _ = rList.popFront();
+                    },
+                    'j' => {
+                        _ = dList.popFront();
+                    },
+                    'k' => {
+                        _ = uList.popFront();
+                    },
+                    'l' => {
+                        _ = lList.popFront();
+                    },
+                    else => {},
+                }
+                char = rl.getCharPressed();
+            }
 
             score += 1;
 
