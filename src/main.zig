@@ -11,7 +11,7 @@ const VScale = 10.0;
 const Height = VHeight * VScale;
 const Width = VWidth * VScale;
 
-var currentHeight: i32 = 0;
+var currentHeight: i64 = 0;
 var score: u64 = 0;
 const speed = 10;
 
@@ -38,17 +38,17 @@ pub fn main() !void {
     var uList: std.Deque(Arrow) = .empty;
     var lList: std.Deque(Arrow) = .empty;
 
-    for (0..3) |i| {
-        try rList.pushBack(alloc, try Arrow.new(.Right, i * 10));
+    for (0..1) |i| {
+        try rList.pushBack(alloc, try Arrow.new(.Right, @as(i64, @intCast(i)) * 10));
     }
-    for (0..3) |i| {
-        try dList.pushBack(alloc, try Arrow.new(.Down, i * 10));
+    for (0..0) |i| {
+        try dList.pushBack(alloc, try Arrow.new(.Down, @as(i64, @intCast(i)) * 10));
     }
-    for (0..3) |i| {
-        try uList.pushBack(alloc, try Arrow.new(.Up, i * 10));
+    for (0..1) |i| {
+        try uList.pushBack(alloc, try Arrow.new(.Up, @as(i64, @intCast(i)) * 10));
     }
-    for (0..3) |i| {
-        try lList.pushBack(alloc, try Arrow.new(.Left, i * 10));
+    for (0..2) |i| {
+        try lList.pushBack(alloc, try Arrow.new(.Left, @as(i64, @intCast(i)) * 10));
     }
 
     while (!rl.windowShouldClose()) {
@@ -80,25 +80,28 @@ pub fn main() !void {
 
             var char = rl.getCharPressed();
             while (char != 0) {
+                // lwk this is faulty idc
                 switch (char) {
                     'h' => {
-                        _ = rList.popFront();
+                        const popped = lList.popFront() orelse break;
+                        score += getScore(&popped);
                     },
                     'j' => {
-                        _ = dList.popFront();
+                        const popped = dList.popFront() orelse break;
+                        score += getScore(&popped);
                     },
                     'k' => {
-                        _ = uList.popFront();
+                        const popped = uList.popFront() orelse break;
+                        score += getScore(&popped);
                     },
                     'l' => {
-                        _ = lList.popFront();
+                        const popped = rList.popFront() orelse break;
+                        score += getScore(&popped);
                     },
                     else => {},
                 }
                 char = rl.getCharPressed();
             }
-
-            score += 1;
 
             std.log.debug("height: {}", .{currentHeight});
 
@@ -109,6 +112,10 @@ pub fn main() !void {
         }
         rl.endDrawing();
     }
+}
+
+fn getScore(arrow: *const Arrow) u64 {
+    return @abs(100 - @as(i64, @intCast(@abs(arrow.height - currentHeight))));
 }
 
 fn cleanse(list: *std.Deque(Arrow)) !void {
@@ -140,8 +147,8 @@ const Arrow = struct {
     direction: ArrowDirection,
     image: rl.Texture,
     position: rl.Vector2,
-    height: u64,
-    pub fn new(direction: ArrowDirection, height: u64) !Arrow {
+    height: i64,
+    pub fn new(direction: ArrowDirection, height: i64) !Arrow {
         const image = switch (direction) {
             ArrowDirection.Up => try utils.loadTextureFromMem(@embedFile("media/uarrow.png")),
             ArrowDirection.Left => try utils.loadTextureFromMem(@embedFile("media/larrow.png")),
