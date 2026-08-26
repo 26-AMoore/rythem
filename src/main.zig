@@ -108,7 +108,6 @@ fn handleInput(
             'a' => {
                 if (lList.front() != null and lList.front().?.height + 500 <= currentHeight) {
                     const popped = lList.popFront() orelse return;
-                    std.debug.print("popped height: {}\n", .{popped.height});
                     score += getScore(&popped);
                 } else {
                     score -= 1000;
@@ -196,7 +195,6 @@ const Arrow = struct {
     }
 
     pub fn draw(self: *Arrow) void {
-        std.debug.print("arrow height {} \n", .{self.height});
         self.position.y = self.position.y + speed;
         rl.drawTextureEx(self.image, self.position, 0, VScale, .white);
     }
