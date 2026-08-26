@@ -15,14 +15,20 @@ var currentHeight: i64 = 0;
 var score: u64 = 0;
 const speed = 10;
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     var gpa = std.heap.DebugAllocator(.{}).init;
     const alloc = gpa.allocator();
 
     _ = .{alloc};
 
+    const io = init.io;
+
+    var prng: std.Random.IoSource = .{ .io = io };
+    const random = prng.interface();
+
     rl.initWindow(Width, Height, "rythem");
     rl.setTargetFPS(60);
+    rl.setTraceLogLevel(rl.TraceLogLevel.none);
 
     const renderTexture: rl.RenderTexture2D = try rl.loadRenderTexture(VWidth, VHeight);
     const renderTextureSrc: rl.Rectangle = rl.Rectangle{ .x = 0, .y = 0, .height = -VHeight, .width = VWidth };
@@ -38,19 +44,6 @@ pub fn main() !void {
     var uList: std.Deque(Arrow) = .empty;
     var lList: std.Deque(Arrow) = .empty;
 
-    for (0..1) |i| {
-        try rList.pushBack(alloc, try Arrow.new(.Right, @as(i64, @intCast(i)) * 10));
-    }
-    for (0..0) |i| {
-        try dList.pushBack(alloc, try Arrow.new(.Down, @as(i64, @intCast(i)) * 10));
-    }
-    for (0..1) |i| {
-        try uList.pushBack(alloc, try Arrow.new(.Up, @as(i64, @intCast(i)) * 10));
-    }
-    for (0..2) |i| {
-        try lList.pushBack(alloc, try Arrow.new(.Left, @as(i64, @intCast(i)) * 10));
-    }
-
     while (!rl.windowShouldClose()) {
         rl.beginTextureMode(renderTexture);
         {
@@ -65,6 +58,19 @@ pub fn main() !void {
         rl.endTextureMode();
         currentHeight += speed;
 
+        if (random.uintAtMost(usize, 100) == -1) {
+            try rList.pushBack(alloc, try Arrow.new(.Right, currentHeight + 100));
+        }
+        if (random.uintAtMost(usize, 100) == 1) {
+            try dList.pushBack(alloc, try Arrow.new(.Down, currentHeight + 100));
+        }
+        if (random.uintAtMost(usize, 100) == 1) {
+            try uList.pushBack(alloc, try Arrow.new(.Up, currentHeight + 100));
+        }
+        if (random.uintAtMost(usize, 100) == 1) {
+            try lList.pushBack(alloc, try Arrow.new(.Left, currentHeight + 100));
+        }
+
         rl.beginDrawing();
         {
             rl.drawTexturePro(renderTexture.texture, renderTextureSrc, renderTextureDest, rl.Vector2{ .x = 0, .y = 0 }, 0, .white);
@@ -78,32 +84,7 @@ pub fn main() !void {
             try cleanse(&lList);
             try cleanse(&uList);
 
-            var char = rl.getCharPressed();
-            while (char != 0) {
-                // lwk this is faulty idc
-                switch (char) {
-                    'h' => {
-                        const popped = lList.popFront() orelse break;
-                        score += getScore(&popped);
-                    },
-                    'j' => {
-                        const popped = dList.popFront() orelse break;
-                        score += getScore(&popped);
-                    },
-                    'k' => {
-                        const popped = uList.popFront() orelse break;
-                        score += getScore(&popped);
-                    },
-                    'l' => {
-                        const popped = rList.popFront() orelse break;
-                        score += getScore(&popped);
-                    },
-                    else => {},
-                }
-                char = rl.getCharPressed();
-            }
-
-            std.log.debug("height: {}", .{currentHeight});
+            try handleInput(&lList, &dList, &uList, &rList);
 
             var scorebuf: [16]u8 = undefined;
             const scoreStr = try std.fmt.bufPrintSentinel(&scorebuf, "score: {}", .{score}, 0);
@@ -114,8 +95,57 @@ pub fn main() !void {
     }
 }
 
+fn handleInput(
+    lList: *std.Deque(Arrow),
+    dList: *std.Deque(Arrow),
+    uList: *std.Deque(Arrow),
+    rList: *std.Deque(Arrow),
+) !void {
+    var char = rl.getCharPressed();
+    while (char != 0) {
+        // lwk this is faulty idc
+        switch (char) {
+            'a' => {
+                if (lList.front() != null and lList.front().?.height + 500 <= currentHeight) {
+                    const popped = lList.popFront() orelse return;
+                    std.debug.print("popped height: {}\n", .{popped.height});
+                    score += getScore(&popped);
+                } else {
+                    score -= 1000;
+                }
+            },
+            's' => {
+                if (dList.front() != null and dList.front().?.height + 500 <= currentHeight) {
+                    const popped = dList.popFront() orelse return;
+                    score += getScore(&popped);
+                } else {
+                    score -= 1000;
+                }
+            },
+            'w' => {
+                if (uList.front() != null and uList.front().?.height + 500 <= currentHeight) {
+                    const popped = uList.popFront() orelse return;
+                    score += getScore(&popped);
+                } else {
+                    score -= 1000;
+                }
+            },
+            'd' => {
+                if (rList.front() != null and rList.front().?.height + 500 <= currentHeight) {
+                    const popped = rList.popFront() orelse return;
+                    score += getScore(&popped);
+                } else {
+                    score -= 1000;
+                }
+            },
+            else => {},
+        }
+        char = rl.getCharPressed();
+    }
+}
+
 fn getScore(arrow: *const Arrow) u64 {
-    return @abs(100 - @as(i64, @intCast(@abs(arrow.height - currentHeight))));
+    return @abs(100 - @as(i64, @divFloor(@as(i64, @intCast(@abs(arrow.height - currentHeight))), 100)));
 }
 
 fn cleanse(list: *std.Deque(Arrow)) !void {
@@ -123,6 +153,7 @@ fn cleanse(list: *std.Deque(Arrow)) !void {
         return;
     }
     while ((list.frontPtr() != null) and list.frontPtr().?.position.y >= @as(i32, @trunc(Height))) {
+        score -= 1000;
         _ = list.popFront() orelse return;
     }
 }
@@ -165,8 +196,8 @@ const Arrow = struct {
     }
 
     pub fn draw(self: *Arrow) void {
+        std.debug.print("arrow height {} \n", .{self.height});
         self.position.y = self.position.y + speed;
         rl.drawTextureEx(self.image, self.position, 0, VScale, .white);
-        std.debug.print("position: {}\n", .{self.position.y});
     }
 };
