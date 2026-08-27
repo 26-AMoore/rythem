@@ -10,8 +10,10 @@ const VScale = 10.0;
 
 const Height = VHeight * VScale;
 const Width = VWidth * VScale;
+const chance: usize = 100;
 
 var currentHeight: i64 = 0;
+var health: u64 = 1000;
 var score: u64 = 0;
 const speed = 10;
 
@@ -58,16 +60,16 @@ pub fn main(init: std.process.Init) !void {
         rl.endTextureMode();
         currentHeight += speed;
 
-        if (random.uintAtMost(usize, 100) == -1) {
+        if (random.uintAtMost(usize, chance) == 1) {
             try rList.pushBack(alloc, try Arrow.new(.Right, currentHeight + 100));
         }
-        if (random.uintAtMost(usize, 100) == 1) {
+        if (random.uintAtMost(usize, chance) == 1) {
             try dList.pushBack(alloc, try Arrow.new(.Down, currentHeight + 100));
         }
-        if (random.uintAtMost(usize, 100) == 1) {
+        if (random.uintAtMost(usize, chance) == 1) {
             try uList.pushBack(alloc, try Arrow.new(.Up, currentHeight + 100));
         }
-        if (random.uintAtMost(usize, 100) == 1) {
+        if (random.uintAtMost(usize, chance) == 1) {
             try lList.pushBack(alloc, try Arrow.new(.Left, currentHeight + 100));
         }
 
@@ -84,11 +86,17 @@ pub fn main(init: std.process.Init) !void {
             try cleanse(&lList);
             try cleanse(&uList);
 
+            score += 1;
+
             try handleInput(&lList, &dList, &uList, &rList);
+
+            var healthbuf: [17]u8 = undefined;
+            const healthStr = try std.fmt.bufPrintSentinel(&healthbuf, "health: {}", .{health}, 0);
+            try utils.printCentered(healthStr, Width / 2, 10, fontSize, .green);
 
             var scorebuf: [16]u8 = undefined;
             const scoreStr = try std.fmt.bufPrintSentinel(&scorebuf, "score: {}", .{score}, 0);
-            try utils.printCentered(scoreStr, Width / 2, 10, fontSize * 3, .black);
+            try utils.printCentered(scoreStr, Width / 2, 25, fontSize * 3, .black);
             try utils.drawFps();
         }
         rl.endDrawing();
@@ -108,33 +116,33 @@ fn handleInput(
             'a' => {
                 if (lList.front() != null and lList.front().?.height + 500 <= currentHeight) {
                     const popped = lList.popFront() orelse return;
-                    score += getScore(&popped);
+                    health += getScore(&popped);
                 } else {
-                    score -= 1000;
+                    health -= 500;
                 }
             },
             's' => {
                 if (dList.front() != null and dList.front().?.height + 500 <= currentHeight) {
                     const popped = dList.popFront() orelse return;
-                    score += getScore(&popped);
+                    health += getScore(&popped);
                 } else {
-                    score -= 1000;
+                    health -= 500;
                 }
             },
             'w' => {
                 if (uList.front() != null and uList.front().?.height + 500 <= currentHeight) {
                     const popped = uList.popFront() orelse return;
-                    score += getScore(&popped);
+                    health += getScore(&popped);
                 } else {
-                    score -= 1000;
+                    health -= 500;
                 }
             },
             'd' => {
                 if (rList.front() != null and rList.front().?.height + 500 <= currentHeight) {
                     const popped = rList.popFront() orelse return;
-                    score += getScore(&popped);
+                    health += getScore(&popped);
                 } else {
-                    score -= 1000;
+                    health -= 500;
                 }
             },
             else => {},
@@ -152,7 +160,7 @@ fn cleanse(list: *std.Deque(Arrow)) !void {
         return;
     }
     while ((list.frontPtr() != null) and list.frontPtr().?.position.y >= @as(i32, @trunc(Height))) {
-        score -= 1000;
+        health -= 1000;
         _ = list.popFront() orelse return;
     }
 }
