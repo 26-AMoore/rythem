@@ -15,6 +15,7 @@ const chance: usize = 100;
 var currentHeight: i64 = 0;
 var health: u64 = 1000;
 var score: u64 = 0;
+var streak: u64 = 0;
 const speed = 10;
 
 pub fn main(init: std.process.Init) !void {
@@ -90,6 +91,10 @@ pub fn main(init: std.process.Init) !void {
 
             try handleInput(&lList, &dList, &uList, &rList);
 
+            var streakbuf: [8]u8 = undefined;
+            const streakStr = try std.fmt.bufPrintSentinel(&streakbuf, "{}", .{streak}, 0);
+            try utils.printCentered(streakStr, Width / 2, Height - 200, fontSize * 2, .black);
+
             var healthbuf: [17]u8 = undefined;
             const healthStr = try std.fmt.bufPrintSentinel(&healthbuf, "health: {}", .{health}, 0);
             try utils.printCentered(healthStr, Width / 2, 10, fontSize, .green);
@@ -117,32 +122,40 @@ fn handleInput(
                 if (lList.front() != null and lList.front().?.height + 500 <= currentHeight) {
                     const popped = lList.popFront() orelse return;
                     health += getScore(&popped);
+                    streak += 1;
                 } else {
                     health -= 500;
+                    streak = 0;
                 }
             },
             's' => {
                 if (dList.front() != null and dList.front().?.height + 500 <= currentHeight) {
                     const popped = dList.popFront() orelse return;
                     health += getScore(&popped);
+                    streak += 1;
                 } else {
                     health -= 500;
+                    streak = 0;
                 }
             },
             'w' => {
                 if (uList.front() != null and uList.front().?.height + 500 <= currentHeight) {
                     const popped = uList.popFront() orelse return;
                     health += getScore(&popped);
+                    streak += 1;
                 } else {
                     health -= 500;
+                    streak = 0;
                 }
             },
             'd' => {
                 if (rList.front() != null and rList.front().?.height + 500 <= currentHeight) {
                     const popped = rList.popFront() orelse return;
                     health += getScore(&popped);
+                    streak += 1;
                 } else {
                     health -= 500;
+                    streak = 0;
                 }
             },
             else => {},
@@ -162,6 +175,7 @@ fn cleanse(list: *std.Deque(Arrow)) !void {
     while ((list.frontPtr() != null) and list.frontPtr().?.position.y >= @as(i32, @trunc(Height))) {
         health -= 1000;
         _ = list.popFront() orelse return;
+        streak = 0;
     }
 }
 
